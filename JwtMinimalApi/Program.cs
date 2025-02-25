@@ -3,15 +3,36 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Serilog.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // เพิ่ม services ที่จำเป็น
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure Serilog Logging
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.File(builder.Configuration["Logging:Serilog:Path"],
+                  rollOnFileSizeLimit: true,
+                  fileSizeLimitBytes: int.Parse(builder.Configuration["Logging:Serilog:MaxFileSize"]),
+                  outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss}|{SourceContext}|{Message}|{UserName}{NewLine}")
+    .CreateLogger();
+builder.Host.UseSerilog(Log.Logger, dispose: true);
+
+
+// ส่วนของการตั้งค่า JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+});
+
+
 
 // ส่วนของการตั้งค่า JWT Authentication
 builder.Services.AddAuthentication(options =>
